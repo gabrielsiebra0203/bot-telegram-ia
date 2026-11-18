@@ -15,6 +15,9 @@ python app/listar_modelos.py flash
 python app/perguntar.py
 python app/chat.py             # chat com memória
 python app/testar_conversa.py  # testes (não usam a API)
+python app/criar_dados_exemplo.py   # banco de clima com dados fictícios, para testes
+python app/testar_ferramentas.py    # testes das ferramentas (não usam a API)
+python app/chat_ferramentas.py      # chat com ferramentas (calculadora e previsão do tempo)
 ```
 
 ## Configuração
