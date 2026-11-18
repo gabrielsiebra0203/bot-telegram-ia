@@ -21,6 +21,14 @@ python app/chat_ferramentas.py      # chat com ferramentas (calculadora e previs
 python app/chat_ferramentas.py   # agente com ferramentas, limites de uso e logs
 python app/testar_agente.py      # testes dos limites, das notas e do loop do agente (sem API)
 ```
+## Segurança e limites
+
+- Ferramentas com o mínimo de poder: o banco de clima é aberto somente para leitura e a
+  calculadora não usa `eval`.
+- O usuário é identificado pelo programa (contexto), nunca pelo modelo.
+- Limites: tamanho da mensagem, requisições por minuto e por dia, rodadas e chamadas de
+  ferramenta por turno, tempo por turno, tamanho do resultado das ferramentas e *timeout* de rede.
+- Logs com rotação em `dados/agente.log`. Por padrão só metadados; `DEPURAR=1` inclui conteúdo.
 
 ## Configuração
 
