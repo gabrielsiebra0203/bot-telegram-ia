@@ -1,0 +1,16 @@
+
+services:
+  bot:
+    image: bot-telegram-ia:1.0
+    container_name: bot-telegram-ia
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./dados:/app/dados
+
+    restart: unless-stopped
+
+    security_opt:
+      - no-new-privileges:true
