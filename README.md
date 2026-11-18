@@ -18,19 +18,21 @@ Projeto desenvolvido durante meus estudos de Python, APIs de modelos de linguage
 - **Logs:** registro de operações com rotação de arquivos.
 - **Testes automatizados:** validação de ferramentas, memória, limites e funcionamento do agente.
 
-## 🛠️ Tecnologias utilizadas
-
 | Tecnologia | Finalidade |
 |---|---|
-| Python | Linguagem principal |
+| Python 3.13 | Linguagem principal do projeto |
 | Google Gemini | Modelo de inteligência artificial |
-| OpenAI SDK | Comunicação com API compatível |
-| python-telegram-bot | Integração com Telegram |
+| OpenAI SDK | Integração com a API compatível do Gemini |
+| python-telegram-bot | Comunicação com usuários do Telegram |
 | SQLite | Armazenamento de notas e dados meteorológicos |
-| JSON | Persistência do histórico de conversas |
-| python-dotenv | Gerenciamento de variáveis de ambiente |
-| asyncio | Execução de tarefas sem bloquear o bot |
-| Git e GitHub | Versionamento e publicação |
+| JSON | Persistência dos históricos de conversas |
+| python-dotenv | Configuração de variáveis de ambiente |
+| asyncio | Processamento assíncrono |
+| Docker | Containerização da aplicação |
+| Docker Compose | Gerenciamento e reinicialização do container |
+| Ubuntu Server | Sistema operacional da VPS |
+| Contabo VPS | Hospedagem da aplicação |
+| Git e GitHub | Versionamento e publicação do código |
 
 ## 🧠 Arquitetura
 
@@ -153,6 +155,153 @@ Com o programa em execução, abra seu bot no Telegram e envie `/start`.
 
 O bot utiliza *polling*, portanto o processo Python precisa permanecer executando para receber mensagens.
 
+## 🐳 Executando com Docker
+
+O projeto possui um `Dockerfile` e um arquivo `compose.yaml` para executar o bot em um container Docker, sem a necessidade de instalar as dependências Python diretamente no servidor.
+
+### 1. Configurar as variáveis de ambiente
+
+Crie o arquivo `.env` a partir de `.env.example` e preencha as credenciais do Telegram e do Gemini.
+
+O arquivo `.env` contém informações sensíveis e não deve ser enviado ao GitHub.
+
+### 2. Construir a imagem
+
+```bash
+docker build -t bot-telegram-ia:1.0 .
+```
+
+A imagem utiliza Python 3.13 e executa a aplicação com um usuário não privilegiado (`botuser`).
+
+### 3. Iniciar o container
+
+```bash
+docker compose up -d
+```
+
+O bot será iniciado em segundo plano, utilizando o sistema de *polling* do Telegram.
+
+### 4. Verificar o funcionamento
+
+```bash
+docker compose ps
+docker compose logs --tail=30 bot
+```
+
+Para acompanhar os logs em tempo real:
+
+```bash
+docker compose logs -f bot
+```
+
+Para interromper somente o bot:
+
+```bash
+docker compose stop bot
+```
+
+## ☁️ Deploy em VPS Contabo
+
+O assistente foi implantado em uma VPS Contabo com Ubuntu Server e Docker, permitindo sua execução independentemente do computador de desenvolvimento.
+
+### Arquitetura de produção
+
+```text
+Usuário no Telegram
+        |
+        v
+Telegram Bot API
+        |
+        v
+VPS Contabo (Ubuntu Server)
+        |
+        v
+Docker Compose
+        |
+        v
+Container Python (botuser)
+        |
+        +----> Google Gemini
+        |
+        +----> Calculadora
+        |
+        +----> SQLite (notas e clima)
+        |
+        +----> JSON (históricos)
+        |
+        v
+Resposta enviada ao Telegram
+```
+
+### Processo de implantação
+
+As principais etapas realizadas foram:
+
+1. Configuração do acesso SSH à VPS.
+2. Instalação e validação do Docker e Docker Compose.
+3. Clonagem do repositório GitHub no servidor.
+4. Configuração das variáveis de ambiente.
+5. Construção da imagem Docker.
+6. Preparação dos diretórios de armazenamento.
+7. Validação das permissões de escrita do container.
+8. Transferência e verificação do banco de clima SQLite.
+9. Inicialização da aplicação com Docker Compose.
+10. Testes reais de comunicação com Telegram e Gemini.
+
+### Persistência de dados
+
+O Docker Compose utiliza um volume do tipo *bind mount*:
+
+```yaml
+volumes:
+  - ./dados:/app/dados
+```
+
+Esse mapeamento permite armazenar os dados fora do sistema de arquivos interno do container.
+
+Entre os dados persistidos estão:
+
+- Históricos individuais de conversas em JSON.
+- Notas pessoais armazenadas em SQLite.
+- Banco meteorológico SQLite.
+- Arquivos de log da aplicação.
+
+A persistência foi validada por meio de testes de escrita, leitura e reinicialização do container.
+
+### Reinicialização automática
+
+O serviço utiliza a política:
+
+```yaml
+restart: unless-stopped
+```
+
+Essa configuração permite que o Docker reinicie o container automaticamente em situações previstas pela política, como falhas do processo ou reinicialização do serviço Docker, desde que ele não tenha sido interrompido manualmente.
+
+### Atualização da aplicação
+
+Para atualizar o código no servidor, é necessário obter a nova versão do repositório, reconstruir a imagem e recriar o container:
+
+```bash
+git pull origin main
+docker build -t bot-telegram-ia:1.0 .
+docker compose up -d --force-recreate
+```
+
+Os comandos devem ser executados no diretório do projeto, após verificar as alterações e preservar os arquivos locais de configuração e dados.
+
+**Observação:** o bot utiliza *polling*. Portanto, somente uma instância deve consumir atualizações do Telegram utilizando o mesmo token.
+
+### Segurança da implantação
+
+- Execução do processo Python com usuário não privilegiado.
+- Credenciais mantidas em arquivo `.env` fora do Git.
+- Diretórios de dados persistidos no servidor.
+- Proteção adicional do container com `no-new-privileges`.
+- Sem necessidade de expor portas públicas para receber mensagens do Telegram.
+- Isolamento da aplicação em relação aos demais serviços da VPS.
+
+A implantação foi realizada como parte de um projeto prático de estudos em Python, inteligência artificial, Docker e infraestrutura Linux.
 ## 💬 Comandos do Telegram
 
 | Comando | Função |
@@ -219,12 +368,11 @@ Durante o desenvolvimento, pratiquei:
 
 ## 🎯 Próximas melhorias
 
-- Implantação em servidor para funcionamento contínuo.
-- Monitoramento de disponibilidade e falhas.
-- Persistência dos limites de utilização.
-- Testes automatizados específicos da integração com Telegram.
-- Melhorias na experiência de interação com o usuário.
-
----
+- Implementar monitoramento de disponibilidade e alertas de falhas.
+- Persistir os limites de utilização em banco de dados.
+- Ampliar os testes automatizados da integração com Telegram.
+- Implementar um processo automatizado de deploy (CI/CD).
+- Melhorar o gerenciamento de logs e observabilidade.
+- Implementar controle de acesso para utilização do bot em produção.
 
 **Desenvolvido como projeto prático de estudos em Python, inteligência artificial e automação.**
