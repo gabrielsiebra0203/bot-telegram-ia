@@ -13,6 +13,8 @@ python -m pip install -r requirements.txt
 cp .env.example .env          # no PowerShell: Copy-Item .env.example .env
 python app/listar_modelos.py flash
 python app/perguntar.py
+python app/chat.py             # chat com memória
+python app/testar_conversa.py  # testes (não usam a API)
 ```
 
 ## Configuração
