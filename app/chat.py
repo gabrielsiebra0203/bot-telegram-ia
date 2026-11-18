@@ -1,42 +1,18 @@
 """Chat no terminal com memória: reenvia o histórico a cada pergunta."""
 
 import time
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import openai
 
 from conversa import Conversa
 from llm_config import criar_cliente
+from comum import mensagem_de_erro, montar_sistema
 
 MAX_TOKENS = 1000
 MAX_MENSAGENS = 20
 TENTATIVAS = 3
-FORTALEZA = timezone(timedelta(hours=-3))
 ARQUIVO_HISTORICO = Path(__file__).resolve().parent.parent / "dados" / "historico.json"
-
-
-def montar_sistema():
-    """Monta o system prompt, incluindo a data e a hora atuais em Fortaleza."""
-    agora = datetime.now(FORTALEZA).strftime("%d/%m/%Y %H:%M")
-    return (
-        "Você é um assistente prestativo. Responda sempre em português do Brasil, "
-        "de forma clara e concisa. Se não souber algo, diga que não sabe.\n"
-        f"Data e hora atuais em Fortaleza: {agora}."
-    )
-
-
-def mensagem_de_erro(erro):
-    """Traduz uma exceção da API em uma mensagem amigável."""
-    if isinstance(erro, openai.AuthenticationError):
-        return "Chave de API inválida. Confira o arquivo .env."
-    if isinstance(erro, openai.RateLimitError):
-        return "Limite do plano gratuito atingido. Espere um pouco e tente de novo."
-    if isinstance(erro, openai.APIConnectionError):
-        return "Sem conexão com a API. Verifique a internet e o LLM_BASE_URL."
-    if isinstance(erro, openai.APIStatusError):
-        return f"A API recusou o pedido (código {erro.status_code}): {erro.message}"
-    return f"Erro inesperado: {erro}"
 
 
 def chamar_modelo(client, modelo, extras, conversa):
