@@ -1,26 +1,21 @@
-"""Chat no terminal com memória e ferramentas (cálculos e previsão do tempo)."""
-
-import logging
-import os
-from pathlib import Path
+"""Chat no terminal com memória, ferramentas, limites de uso e logs."""
 
 import openai
 
-from agente import LimiteDeRodadasError, responder
-from chat import mensagem_de_erro, mostrar_historico
+from agente import LimiteDoAgenteError, responder
+from chat import mostrar_historico
+from comum import PASTA_DADOS, configurar_log, mensagem_de_erro
 from conversa import Conversa
+from limites import LimitesDeUso
 from llm_config import criar_cliente
 
+USUARIO = "terminal"
 MAX_MENSAGENS = 20
-ARQUIVO_HISTORICO = Path(__file__).resolve().parent.parent / "dados" / "historico_ferramentas.json"
+MAX_CARACTERES_ENTRADA = 1000
+ARQUIVO_HISTORICO = PASTA_DADOS / "historico_ferramentas.json"
 
-
-def configurar_log():
-    """Mostra no terminal cada ferramenta usada. Com DEPURAR=1 mostra mais detalhes."""
-    nivel = logging.DEBUG if os.environ.get("DEPURAR") == "1" else logging.INFO
-    logging.basicConfig(level=nivel, format="%(message)s")
-    for biblioteca in ("httpx", "httpcore", "openai"):
-        logging.getLogger(biblioteca).setLevel(logging.WARNING)
+# 6 mensagens por minuto e 150 por dia. Ajuste conforme os limites do seu plano gratuito.
+LIMITES = LimitesDeUso([(6, 60), (150, 86_400)])
 
 
 def main():
@@ -30,7 +25,8 @@ def main():
     conversa = Conversa(max_mensagens=MAX_MENSAGENS)
     conversa.carregar(ARQUIVO_HISTORICO)
 
-    print(f"Modelo: {modelo} | ferramentas: calcular, previsao_clima, cidades_monitoradas")
+    print(f"Modelo: {modelo}")
+    print("Ferramentas: calcular, previsao_clima, resumo_chuva, cidades_monitoradas, salvar_nota, listar_notas")
     print("Comandos: /historico, /limpar, /sair")
 
     while True:
@@ -51,12 +47,21 @@ def main():
         if not entrada:
             continue
 
+        if len(entrada) > MAX_CARACTERES_ENTRADA:
+            print(f"Mensagem longa demais ({len(entrada)} caracteres). O máximo é {MAX_CARACTERES_ENTRADA}.")
+            continue
+
+        permitido, espera = LIMITES.permitir(USUARIO)
+        if not permitido:
+            print(f"Você está enviando mensagens rápido demais. Tente de novo em {int(espera) + 1}s.")
+            continue
+
         conversa.adicionar_usuario(entrada)
         try:
-            resultado = responder(client, modelo, extras, conversa)
-        except LimiteDeRodadasError as erro:
+            resultado = responder(client, modelo, extras, conversa, {"usuario": USUARIO})
+        except LimiteDoAgenteError as erro:
             conversa.desfazer_ultima()
-            print(f"O agente travou num ciclo de ferramentas. {erro}")
+            print(f"Não consegui concluir: {erro}")
             continue
         except openai.OpenAIError as erro:
             conversa.desfazer_ultima()
