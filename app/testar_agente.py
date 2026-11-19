@@ -245,6 +245,17 @@ def testar_agente_sobrevive_a_argumentos_invalidos():
     assert "erro" in json.loads(retorno["content"])
 
 
+def testar_agente_trata_resposta_sem_choices():
+    resposta = resposta_falsa()
+    resposta.choices = []
+    cliente = ClienteFalso([resposta])
+
+    resultado = agente.responder(cliente, "modelo-falso", {}, conversa_com("oi"))
+
+    assert isinstance(resultado, agente.Resultado)
+    assert not resultado.texto.strip()
+
+
 TESTES = [
     testar_limitador_bloqueia_e_libera,
     testar_limitador_com_duas_regras,
@@ -258,6 +269,7 @@ TESTES = [
     testar_agente_para_no_limite_de_rodadas,
     testar_agente_para_no_limite_de_chamadas_por_turno,
     testar_agente_sobrevive_a_argumentos_invalidos,
+    testar_agente_trata_resposta_sem_choices,
 ]
 
 

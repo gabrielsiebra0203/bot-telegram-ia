@@ -117,6 +117,9 @@ def responder(client, modelo, extras, conversa, contexto=None):
             resultado.tokens_entrada += resposta.usage.prompt_tokens
             resultado.tokens_saida += resposta.usage.completion_tokens
 
+        if not resposta.choices:
+            return resultado
+
         escolha = resposta.choices[0]
         mensagem = escolha.message
 
